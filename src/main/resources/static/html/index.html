@@ -1,0 +1,368 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Redis Manager</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <style>
+        .mt-1 {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .mt-2 {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .mt-3 {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .mt-4 {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .cursor-point {
+            cursor: pointer;
+        }
+
+        .key-item:hover {
+            color: #2e6da4;
+        }
+
+        .break-word {
+            word-break: break-word
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="col-md-2 mt-4">
+        <div class="col-md-12">
+            <button class="btn btn-default" id="btn-index-add">新增</button>
+        </div>
+        <div class="col-md-12 mt-4">
+            <ul class="list-group" id="ul-index"></ul>
+        </div>
+    </div>
+    <div class="col-md-10">
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="form-inline" role="form">
+                    <div class="form-group">
+                        <label for="input-pattern"></label>
+                        <input type="text" class="form-control" id="input-pattern" placeholder="查询条件"/>
+                    </div>
+                    <button class="btn btn-default" id="btn-query">查找</button>
+                    <button class="btn btn-danger" id="btn-refresh">刷新缓存</button>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-1">
+            <div class="col-md-5">
+                <ul class="list-group" id="ul-key"></ul>
+                <div class="small">总计<span id="totalPageNumber"></span>页/<span id="totalResultCount"></span>条</div>
+                <ul class="pagination" id="ul-pageBar"></ul>
+            </div>
+            <div class="col-md-7">
+                <div id="div-result">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="refreshModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body"><h3>正在刷新缓存...</h3></div>
+            <div class="modal-footer small hidden">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+<div class="modal fade" id="indexAddModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4>新增快速查询</h4>
+                <div class="form-group">
+                    <label for="input-index-add-text">名称</label>
+                    <input class="form-control" type="text" id="input-index-add-text">
+                </div>
+                <div class="form-group">
+                    <label for="input-index-add-pattern">条件</label>
+                    <input class="form-control" type="text" id="input-index-add-pattern">
+                </div>
+            </div>
+            <div class="modal-footer small">
+                <button type="button" class="btn btn-danger" id="btn-index-add-submit">提交</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script>
+    let pattern = "*";
+    let pageSize = 15;
+    $(function () {
+        search(pattern, 1, pageSize);
+        pullIndex();
+    });
+
+    /*请求索引列表*/
+    function pullIndex() {
+        $.get("/index/list", function (data) {
+            if (data.ok) {
+                fillIndexList(data);
+            } else {
+                alert(data.err);
+            }
+        });
+    }
+
+    /*填充索引列表*/
+    function fillIndexList(data) {
+        let lis = [];
+        for (let i = 0; i < data.result.length; i++) {
+            lis.push("<li class=\"list-group-item cursor-point index-item\" data-x-pattern='" + data.result[i].pattern + "'>" + data.result[i].text + "</li>");
+        }
+        $("#ul-index").html(lis.join(""));
+        $("#ul-index li").click(function (event) {
+            let pattern = $(event.target).attr("data-x-pattern");
+            $("#input-pattern").val(pattern);
+            search(pattern, 1, pageSize);
+        });
+    }
+
+    /*填充key列表*/
+    function fillKeyList(data) {
+        let lis = [];
+        for (let i = 0; i < data.result.length; i++) {
+            lis.push("<li class=\"list-group-item cursor-point key-item\">" + data.result[i] + "</li>");
+        }
+        $("#ul-key").html(lis.join(""));
+        $("#ul-key li").click(function (event) {
+            $.get("/redis/list", {key: $(event.target).text()}, function (data) {
+                if (data.ok) {
+                    fillResultPanel(data);
+                } else {
+                    alert(data.err);
+                }
+            });
+        });
+    }
+
+    /*填充分页条*/
+    function fillPageBar(data) {
+        $("#totalPageNumber").text(data.totalPageNumber);
+        $("#totalResultCount").text(data.total);
+        let itemCount = 24;
+        let lis = [], firstItem, lastItem, curItem, prvLis = [], nextLis = [];
+        if (data.pageNumber > 1) {
+            firstItem = "<li><a data-x-pageNumber='1'>&laquo;</a></li>";
+            itemCount--;
+        }
+        if (data.pageNumber < data.totalPageNumber) {
+            lastItem = "<li><a data-x-pageNumber=" + data.totalPageNumber + ">&raquo;</a></li>";
+            itemCount--;
+        }
+        curItem = "<li class='active'><a data-x-pageNumber=" + data.pageNumber + ">" + data.pageNumber + "</a></li>";
+        itemCount--;
+
+        let prvCount = Math.floor(itemCount / 2);
+        let nextCount = Math.ceil(itemCount / 2);
+        let startPageNumber = data.pageNumber - prvCount;
+        let endPageNumner = data.pageNumber + nextCount;
+        /*正为多, 负为少*/
+        let prvMoreCount = 1 - startPageNumber;
+        let nextMoreCount = endPageNumner - data.totalPageNumber;
+        if (prvMoreCount > 0 && nextMoreCount < 0) { // 前多后少
+            if (prvMoreCount + nextMoreCount >= 0) { // 多的比少的多
+                endPageNumner = data.totalPageNumber;
+                startPageNumber += nextMoreCount;
+            } else {
+                endPageNumner += prvMoreCount;
+                startPageNumber = 1;
+            }
+        } else if (prvMoreCount < 0 && nextMoreCount > 0) {// 前少后多
+            if (nextMoreCount + prvMoreCount >= 0) { // 多的比少的多
+                startPageNumber = 1;
+                endPageNumner += prvMoreCount;
+            } else {
+                startPageNumber += nextMoreCount;
+                endPageNumner = data.totalPageNumber;
+            }
+        }
+        if (startPageNumber < 1) {
+            startPageNumber = 1;
+        }
+        if (endPageNumner > data.totalPageNumber) {
+            endPageNumner = data.totalPageNumber;
+        }
+        for (let i = startPageNumber; i < data.pageNumber; i++) {
+            prvLis.push("<li><a data-x-pageNumber=" + i + ">" + i + "</a></li>");
+        }
+        for (let i = data.pageNumber + 1; i <= endPageNumner; i++) {
+            nextLis.push("<li><a data-x-pageNumber=" + i + ">" + i + "</a></li>");
+        }
+        lis.push(firstItem);
+        lis.push(prvLis.join(""));
+        lis.push(curItem);
+        lis.push(nextLis.join(""));
+        lis.push(lastItem);
+        $("#ul-pageBar").html(lis.join(""));
+        $("#ul-pageBar li").click(function (event) {
+            let pageNumber = $(event.target).attr("data-x-pageNumber");
+            search(pattern, pageNumber, pageSize);
+        });
+    }
+
+    /*填充结果面板*/
+    function fillResultPanel(data) {
+        let panelHeight = window.innerHeight - 50;
+        let $panel = $("#div-result");
+        $panel.height(panelHeight);
+        $panel.css("overflowX", "auto");
+        switch (data.type) {
+            case "hash":
+                fillHashTypeResultPanel($panel, data.result);
+                break;
+            case "string":
+            default:
+                fillStringTypeResultPanel($panel, data.result);
+                break;
+        }
+    }
+
+    function fillStringTypeResultPanel($panel, result) {
+        let html = [];
+        html.push("<p>");
+        html.push(result);
+        html.push("</p>");
+        html.push("<div class='col-md-12 break-word'>");
+        html.push("<textarea class='form-control' rows='10' id='p-json'>");
+        html.push(result);
+        html.push("</textarea>");
+        html.push("</div>");
+        $panel.html(html.join(""));
+    }
+
+    let json;
+
+    function fillHashTypeResultPanel($panel, result) {
+        json = result;
+        let html = [];
+        html.push("<table class=\"table table-bordered\">");
+        html.push("<thead><tr><th>键</th><th>值</th></tr></thead>");
+        html.push("<tbody>");
+        for (let key in result) {
+            html.push("<tr>");
+            html.push("<td>" + key + "</td>");
+            html.push("<td>" + result[key] + "</td>");
+            html.push("</tr>");
+        }
+        html.push("</tbody>");
+        html.push("</table>");
+        // html.push("<button id='btn-toggle-json' class=\"btn btn-default\">json</button>");
+        html.push("<div class='col-md-12 break-word'>");
+        html.push("<textarea class='form-control' rows='10' id='p-json'>");
+        html.push(JSON.stringify(result, null, 4));
+        html.push("</textarea>");
+        html.push("</div>");
+        $panel.html(html.join(""));
+        // $("#btn-toggle-json").click(function () {
+        //     toggle($("#p-json"));
+        // });
+    }
+
+    function search(pattern, pageNumber, pageSize) {
+        $.get("/key/keys", {
+            pattern: pattern,
+            pageNumber: pageNumber,
+            pageSize: pageSize
+        }, function (data) {
+            if (data.ok) {
+                fillKeyList(data);
+                fillPageBar(data);
+            } else {
+                alert(data.err);
+            }
+        });
+    }
+
+    $("#btn-query").click(function () {
+        pattern = $("#input-pattern").val().trim();
+        search(pattern, 1, pageSize);
+    });
+
+    $("#input-pattern").keypress(function (event) {
+        if (event.which === 13) {
+            pattern = $("#input-pattern").val().trim();
+            search(pattern, 1, pageSize);
+        }
+    });
+
+    $("#btn-refresh").click(function () {
+        $("#refreshModal").modal("show");
+        $.get("/key/refresh", function (data) {
+            $("#refreshModal h3").text("缓存刷新完成!");
+            show($("#refreshModal .modal-footer"));
+            if (data.ok) {
+                search(pattern, 1, pageSize);
+            } else {
+                alert(data.err);
+            }
+        });
+    });
+
+    $("#btn-index-add").click(function () {
+        $("#input-index-add-text").val("");
+        $("#input-index-add-pattern").val("");
+        $("#indexAddModal").modal("show");
+    });
+
+    $("#btn-index-add-submit").click(function () {
+        $.post("/index/add", {
+            text: $("#input-index-add-text").val().trim(),
+            pattern: $("#input-index-add-pattern").val().trim()
+        }, function (data) {
+            if (data.ok){
+                $("#indexAddModal").modal("hide");
+                pullIndex();
+            } else {
+                alert(data.err);
+            }
+        });
+    });
+
+    function show($el) {
+        $el.removeClass("hidden");
+    }
+
+    function hidden($el) {
+        $el.addClass("hidden");
+    }
+
+    function toggle($el) {
+        if ($el.hasClass("hidden")) {
+            show($el);
+        } else {
+            hidden($el);
+        }
+    }
+</script>
+</body>
+</html>
