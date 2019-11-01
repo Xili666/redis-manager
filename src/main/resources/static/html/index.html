@@ -141,7 +141,7 @@
         }
         $("#ul-index").html(lis.join(""));
         $("#ul-index li").click(function (event) {
-            let pattern = $(event.target).attr("data-x-pattern");
+            pattern = $(event.target).attr("data-x-pattern");
             $("#input-pattern").val(pattern);
             search(pattern, 1, pageSize);
         });
@@ -170,7 +170,7 @@
         $("#totalPageNumber").text(data.totalPageNumber);
         $("#totalResultCount").text(data.total);
         let itemCount = 24;
-        let lis = [], firstItem, lastItem, curItem, prvLis = [], nextLis = [];
+        let lis = [], firstItem, lastItem;
         if (data.pageNumber > 1) {
             firstItem = "<li><a data-x-pageNumber='1'>&laquo;</a></li>";
             itemCount--;
@@ -179,49 +179,36 @@
             lastItem = "<li><a data-x-pageNumber=" + data.totalPageNumber + ">&raquo;</a></li>";
             itemCount--;
         }
-        curItem = "<li class='active'><a data-x-pageNumber=" + data.pageNumber + ">" + data.pageNumber + "</a></li>";
+
+        lis.push("<li class='active'><a data-x-pageNumber=" + data.pageNumber + ">" + data.pageNumber + "</a></li>");
         itemCount--;
 
-        let prvCount = Math.floor(itemCount / 2);
-        let nextCount = Math.ceil(itemCount / 2);
-        let startPageNumber = data.pageNumber - prvCount;
-        let endPageNumner = data.pageNumber + nextCount;
-        /*正为多, 负为少*/
-        let prvMoreCount = 1 - startPageNumber;
-        let nextMoreCount = endPageNumner - data.totalPageNumber;
-        if (prvMoreCount > 0 && nextMoreCount < 0) { // 前多后少
-            if (prvMoreCount + nextMoreCount >= 0) { // 多的比少的多
-                endPageNumner = data.totalPageNumber;
-                startPageNumber += nextMoreCount;
-            } else {
-                endPageNumner += prvMoreCount;
-                startPageNumber = 1;
-            }
-        } else if (prvMoreCount < 0 && nextMoreCount > 0) {// 前少后多
-            if (nextMoreCount + prvMoreCount >= 0) { // 多的比少的多
-                startPageNumber = 1;
-                endPageNumner += prvMoreCount;
-            } else {
-                startPageNumber += nextMoreCount;
-                endPageNumner = data.totalPageNumber;
-            }
+        // 未选中列
+        function item(pageNumber) {
+            return "<li><a data-x-pageNumber=" + pageNumber + ">" + pageNumber + "</a></li>";
         }
-        if (startPageNumber < 1) {
-            startPageNumber = 1;
+
+        let pIndex = data.pageNumber - 1, nIndex = data.pageNumber + 1;
+        let pCount = data.pageNumber - itemCount / 2, nCount = data.pageNumber + itemCount / 2;
+        while (pIndex > pCount && pIndex > 0) {
+            lis.unshift(item(pIndex));
+            itemCount--;
+            pIndex--;
         }
-        if (endPageNumner > data.totalPageNumber) {
-            endPageNumner = data.totalPageNumber;
+        while (nIndex < nCount && nIndex < data.totalPageNumber) {
+            lis.push(item(nIndex));
+            itemCount--;
+            nIndex++;
         }
-        for (let i = startPageNumber; i < data.pageNumber; i++) {
-            prvLis.push("<li><a data-x-pageNumber=" + i + ">" + i + "</a></li>");
+        while (itemCount > 0 && pIndex > 0) {
+            lis.unshift(item(pIndex--));
+            itemCount--;
         }
-        for (let i = data.pageNumber + 1; i <= endPageNumner; i++) {
-            nextLis.push("<li><a data-x-pageNumber=" + i + ">" + i + "</a></li>");
+        while (itemCount > 0 && nIndex <= data.totalPageNumber) {
+            lis.push(item(nIndex++));
+            itemCount--;
         }
-        lis.push(firstItem);
-        lis.push(prvLis.join(""));
-        lis.push(curItem);
-        lis.push(nextLis.join(""));
+        lis.unshift(firstItem);
         lis.push(lastItem);
         $("#ul-pageBar").html(lis.join(""));
         $("#ul-pageBar li").click(function (event) {
@@ -339,7 +326,7 @@
             text: $("#input-index-add-text").val().trim(),
             pattern: $("#input-index-add-pattern").val().trim()
         }, function (data) {
-            if (data.ok){
+            if (data.ok) {
                 $("#indexAddModal").modal("hide");
                 pullIndex();
             } else {
