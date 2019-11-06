@@ -34,13 +34,24 @@ public class IndexController extends AbstractRedisController {
     }
 
     @PostMapping("/add")
-    public Map<String, Object> add(String text, String pattern){
+    public Map<String, Object> add(String text, String pattern) {
         Index index = new Index();
         index.setText(text);
         index.setPattern(pattern);
         Map<String, Object> resultMap = getResultMap();
         try {
             indexService.saveIndex(index);
+        } catch (SQLException e) {
+            processingError(resultMap, e);
+        }
+        return resultMap;
+    }
+
+    @PostMapping("/del")
+    public Map<String, Object> del(Integer id) {
+        Map<String, Object> resultMap = getResultMap();
+        try {
+            indexService.deleteIndex(id);
         } catch (SQLException e) {
             processingError(resultMap, e);
         }

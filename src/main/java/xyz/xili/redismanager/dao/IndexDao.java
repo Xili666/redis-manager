@@ -9,4 +9,6 @@ public interface IndexDao {
     void insertIndex(Index index) throws SQLException;
 
     List<Index> queryAllIndexList() throws SQLException;
+
+    void deleteIndex(Integer id) throws SQLException;
 }

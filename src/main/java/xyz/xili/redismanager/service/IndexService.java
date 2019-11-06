@@ -9,4 +9,6 @@ public interface IndexService {
     List<Index> getAllIndexList() throws SQLException;
 
     void saveIndex(Index index) throws SQLException;
+
+    void deleteIndex(Integer id) throws SQLException;
 }

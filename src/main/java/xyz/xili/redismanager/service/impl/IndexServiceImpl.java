@@ -25,4 +25,9 @@ public class IndexServiceImpl implements IndexService {
         indexDao.insertIndex(index);
     }
 
+    @Override
+    public void deleteIndex(Integer id) throws SQLException {
+        indexDao.deleteIndex(id);
+    }
+
 }

@@ -48,4 +48,14 @@ public class IndexDaoImpl implements IndexDao {
         }
         return indexList;
     }
+
+    @Override
+    public void deleteIndex(Integer id) throws SQLException {
+        String sql = "delete from t_index where id = ?";
+        try (PreparedStatement statement = sqliteConnection.prepareStatement(sql)) {
+            statement.setInt(1, id);
+            statement.execute();
+            sqliteConnection.commit();
+        }
+    }
 }

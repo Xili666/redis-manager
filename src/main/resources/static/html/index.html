@@ -36,6 +36,15 @@
             color: #2e6da4;
         }
 
+        .index-delete {
+            display: none;
+            color: #3f3f3f;
+        }
+
+        .index-item:hover > .index-delete {
+            display: inline-block;
+        }
+
         .break-word {
             word-break: break-word
         }
@@ -135,13 +144,25 @@
 
     /*填充索引列表*/
     function fillIndexList(data) {
+        function item(item) {
+            return "<li class=\"list-group-item cursor-point index-item\" data-x-pattern='" + item.pattern + "'>"
+                + "<span class='index-delete' data-x-id='" + item.id + "'>&times;&numsp;&numsp;</span>"
+                + "<span>" + item.text + "</span>"
+                + "</li>"
+        }
+
         let lis = [];
         for (let i = 0; i < data.result.length; i++) {
-            lis.push("<li class=\"list-group-item cursor-point index-item\" data-x-pattern='" + data.result[i].pattern + "'>" + data.result[i].text + "</li>");
+            lis.push(item(data.result[i]));
         }
         $("#ul-index").html(lis.join(""));
+        $(".index-delete").click(function (event) {
+            let id = $(event.target).attr("data-x-id");
+            deleteIndex(id);
+            event.stopPropagation();
+        });
         $("#ul-index li").click(function (event) {
-            pattern = $(event.target).attr("data-x-pattern");
+            pattern = $(event.target).attr("data-x-pattern") || $(event.target).parent("li").attr("data-x-pattern");
             $("#input-pattern").val(pattern);
             search(pattern, 1, pageSize);
         });
@@ -169,7 +190,7 @@
     function fillPageBar(data) {
         $("#totalPageNumber").text(data.totalPageNumber);
         $("#totalResultCount").text(data.total);
-        let itemCount = 24;
+        let itemCount = 30;
         let lis = [], firstItem, lastItem;
         if (data.pageNumber > 1) {
             firstItem = "<li><a data-x-pageNumber='1'>&laquo;</a></li>";
@@ -195,7 +216,7 @@
             itemCount--;
             pIndex--;
         }
-        while (nIndex < nCount && nIndex < data.totalPageNumber) {
+        while (nIndex < nCount && nIndex <= data.totalPageNumber) {
             lis.push(item(nIndex));
             itemCount--;
             nIndex++;
@@ -247,10 +268,7 @@
         $panel.html(html.join(""));
     }
 
-    let json;
-
     function fillHashTypeResultPanel($panel, result) {
-        json = result;
         let html = [];
         html.push("<table class=\"table table-bordered\">");
         html.push("<thead><tr><th>键</th><th>值</th></tr></thead>");
@@ -263,16 +281,12 @@
         }
         html.push("</tbody>");
         html.push("</table>");
-        // html.push("<button id='btn-toggle-json' class=\"btn btn-default\">json</button>");
         html.push("<div class='col-md-12 break-word'>");
         html.push("<textarea class='form-control' rows='10' id='p-json'>");
         html.push(JSON.stringify(result, null, 4));
         html.push("</textarea>");
         html.push("</div>");
         $panel.html(html.join(""));
-        // $("#btn-toggle-json").click(function () {
-        //     toggle($("#p-json"));
-        // });
     }
 
     function search(pattern, pageNumber, pageSize) {
@@ -284,6 +298,18 @@
             if (data.ok) {
                 fillKeyList(data);
                 fillPageBar(data);
+            } else {
+                alert(data.err);
+            }
+        });
+    }
+
+    function deleteIndex(id) {
+        $.post("/index/del", {
+            id: id.trim()
+        }, function (data) {
+            if (data.ok) {
+                pullIndex();
             } else {
                 alert(data.err);
             }
