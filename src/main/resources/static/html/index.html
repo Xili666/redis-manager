@@ -121,6 +121,20 @@
         </div><!-- /.modal-content -->
     </div><!-- /.modal -->
 </div>
+<div class="modal fade" id="indexDelModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4>手一抖就没了哟😁</h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-index-del" class="btn btn-danger" data-dismiss="modal">没错</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 <script src="../js/jquery.min.js"></script>
 <script src="../js/bootstrap.min.js"></script>
 <script>
@@ -157,8 +171,11 @@
         }
         $("#ul-index").html(lis.join(""));
         $(".index-delete").click(function (event) {
+            $("#indexDelModal").modal("show");
             let id = $(event.target).attr("data-x-id");
-            deleteIndex(id);
+            $("#btn-index-del").click(function () {
+                deleteIndex(id);
+            });
             event.stopPropagation();
         });
         $("#ul-index li").click(function (event) {
