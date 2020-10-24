@@ -45,4 +45,10 @@ public class RedisController extends AbstractRedisController {
         return resultMap;
     }
 
+    @RequestMapping("/types")
+    public Map<String, Object> types() {
+        Map<String, Object> resultMap = getResultMap();
+        return resultMap;
+    }
+
 }

@@ -1,0 +1,44 @@
+.mt-1 {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.mt-2 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.mt-3 {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.mt-4 {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.cursor-point {
+    cursor: pointer;
+}
+
+.key-item:hover {
+    color: #2e6da4;
+}
+
+.index-delete {
+    display: none;
+    color: #3f3f3f;
+}
+
+.index-item:hover > .index-delete {
+    display: inline-block;
+}
+
+.break-word {
+    word-break: break-word
+}
+
+.hidden {
+    display: none;
+}

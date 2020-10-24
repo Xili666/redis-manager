@@ -2,18 +2,15 @@ package xyz.xili.redismanager.dao.impl;
 
 import org.springframework.stereotype.Repository;
 import xyz.xili.redismanager.bean.Index;
+import xyz.xili.redismanager.dao.AbstractSqliteDao;
 import xyz.xili.redismanager.dao.IndexDao;
 
-import javax.annotation.Resource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class IndexDaoImpl implements IndexDao {
-
-    @Resource
-    private Connection sqliteConnection;
+public class IndexDaoImpl extends AbstractSqliteDao implements IndexDao {
 
     @Override
     public void insertIndex(Index index) throws SQLException {

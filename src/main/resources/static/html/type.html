@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>类型维护</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<div class="container">
+    <div class="col-md-2 mt-4">
+        <div class="col-md-12">
+            <button class="btn btn-default" id="btn-type-add">新增</button>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <table id="typeTable" class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Redis类型</th>
+                <th>Java类型</th>
+                <th>条件</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<div class="modal fade" id="typeAddModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4>新增类型维护</h4>
+                <div class="form-group">
+                    <label for="input-type-add-redisType">Redis类型</label>
+                    <input class="form-control" type="text" id="input-type-add-redisType">
+                </div>
+                <div class="form-group">
+                    <label for="input-type-add-javaType">Java类型</label>
+                    <input class="form-control" type="text" id="input-type-add-javaType">
+                </div>
+                <div class="form-group">
+                    <label for="input-type-add-pattern">条件</label>
+                    <input class="form-control" type="text" id="input-type-add-pattern">
+                </div>
+            </div>
+            <div class="modal-footer small">
+                <button type="button" class="btn btn-danger" id="btn-type-add-submit">提交</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+<div class="modal fade" id="typeDelModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="false">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4>手一抖就没了哟😁</h4>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-type-del" class="btn btn-danger" data-dismiss="modal">没错</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<script src="../js/jquery.min.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script>
+    $(function () {
+        listTypes();
+    });
+
+    function listTypes() {
+        $.get("/type/list", function (data) {
+            if (data.ok) {
+                fillTypeTable(data);
+                bindTypeDelEvent();
+            } else {
+                alert(data.err);
+            }
+        });
+    }
+
+    function fillTypeTable(data) {
+        function tr(line) {
+            let tr = [];
+            tr.push("<tr>");
+            tr.push("<td>" + line.redisType + "</td>");
+            tr.push("<td>" + line.javaType + "</td>");
+            tr.push("<td>" + line.pattern + "</td>");
+            tr.push("<td><button class='btn btn-danger btn-sm type-delete' data-x-id='" + line.id + "'>删除</button></td>");
+            tr.push("</tr>");
+            return tr.join("");
+        }
+
+        let trs = [];
+        for (let i = 0; i < data.result.length; i++) {
+            trs.push(tr(data.result[i]));
+        }
+        $("#typeTable tbody").html(trs.join(""));
+    }
+
+    $("#btn-type-add").click(function () {
+        $("#input-type-add-redisType").val("");
+        $("#input-type-add-javaType").val("");
+        $("#input-type-add-pattern").val("");
+        $("#typeAddModal").modal("show");
+    });
+
+    $("#btn-type-add-submit").click(function () {
+        $.post("/type/add", {
+            redisType: $("#input-type-add-redisType").val().trim(),
+            javaType: $("#input-type-add-javaType").val().trim(),
+            pattern: $("#input-type-add-pattern").val().trim()
+        }, function (data) {
+            if (data.ok) {
+                $("#typeAddModal").modal("hide");
+                listTypes();
+            } else {
+                alert(data.err);
+            }
+        });
+    });
+
+    function bindTypeDelEvent() {
+        $(".type-delete").click(function (event) {
+            $("#typeDelModal").modal("show");
+            let id = $(event.target).attr("data-x-id");
+            $("#btn-type-del").click(function () {
+                deleteType(id);
+            });
+            event.stopPropagation();
+        });
+    }
+
+    function deleteType(id) {
+        $.post("/type/del", {
+            id: id.trim()
+        }, function (data) {
+            if (data.ok) {
+                listTypes();
+            } else {
+                alert(data.err);
+            }
+        });
+    }
+</script>
+</body>
+</html>

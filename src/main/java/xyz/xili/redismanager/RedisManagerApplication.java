@@ -28,15 +28,20 @@ public class RedisManagerApplication {
         sqliteConnection = dataSource.getConnection();
         sqliteConnection.setAutoCommit(false);
         try (Statement statement = sqliteConnection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("select count(1) as exist from sqlite_master where type = 'table' and name = 't_index'")) {
-                int exist = resultSet.getInt("exist");
-                if (exist < 1) {
-                    statement.executeUpdate("create table t_index (id integer primary key, text text not null, pattern text not null)");
-                    sqliteConnection.commit();
-                }
-            }
+            createTable(statement, "t_index", "create table t_index (id integer primary key, text text not null, pattern text not null)");
+            createTable(statement, "t_type", "create table t_type (id integer primary key, redisType text not null, javaType text not null, pattern text not null)");
         }
         return sqliteConnection;
+    }
+
+    private void createTable(Statement statement, String tableName, String sql) throws SQLException {
+        try (ResultSet resultSet = statement.executeQuery(String.format("select count(1) as exist from sqlite_master where type = 'table' and name = '%s'", tableName))) {
+            int exist = resultSet.getInt("exist");
+            if (exist < 1) {
+                statement.executeUpdate(sql);
+                sqliteConnection.commit();
+            }
+        }
     }
 
     @PreDestroy
